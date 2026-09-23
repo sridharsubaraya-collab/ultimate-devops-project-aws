@@ -1,4 +1,4 @@
-name: Plan and Apply terraform
+name: Plan and Apply
 
 on:
   push:
