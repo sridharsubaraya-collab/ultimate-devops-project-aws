@@ -1,0 +1,58 @@
+name: Plan and Apply Terraform
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # Required for OIDC
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Debug OIDC
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const token = await core.getIDToken('sts.amazonaws.com');
+            const payload = JSON.parse(
+              Buffer.from(token.split('.')[1], 'base64url').toString()
+            );
+
+            console.log('iss:', payload.iss);
+            console.log('aud:', payload.aud);
+            console.log('sub:', payload.sub);
+            console.log('repository:', payload.repository);
+            console.log('repository_id:', payload.repository_id);
+            console.log('repository_owner:', payload.repository_owner);
+            console.log('repository_owner_id:', payload.repository_owner_id);
+            console.log('ref:', payload.ref);
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::537557168820:role/Test-Role
+          aws-region: ap-south-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.8.0
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        run: terraform plan -no-color
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
